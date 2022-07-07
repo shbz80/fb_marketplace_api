@@ -24,7 +24,8 @@ class ImageModel(torch.nn.Module):
                             nn.ReLU(),
                             nn.Linear(256, len(decoder)),
                             )
-        self.img_model.load_state_dict(torch.load(saved_model_path))
+        self.img_model.load_state_dict(torch.load(
+            saved_model_path, map_location=torch.device('cpu')))
         self.decoder = decoder
         self.transformer = transformer
 
@@ -88,7 +89,7 @@ def predict_comb_class(img: UploadFile = File(...), txt: UploadFile = Form(...))
     return res
 
 if __name__ == '__main__':
-    uvicorn.run(api, port=8008, host='127.0.0.1')
+    uvicorn.run('fb_mk_api:api', port=8008, host='0.0.0.0')
 
     
 
