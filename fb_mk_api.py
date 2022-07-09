@@ -87,9 +87,13 @@ def predict_txt_class(txt: str = Form(...)):
     return res
 
 @api.post('/combined')
-def predict_comb_class(img: UploadFile = File(...), txt: UploadFile = Form(...)):
+def predict_comb_class(img: UploadFile = File(...), txt: str = Form(...)):
+    img = Image.open(img.file)
+    txt = transformer_txt.transform(txt)
+    classes = combined_model.predict_classes(img, txt)
+    pred = combined_model.predict(img, txt)
     res = JSONResponse(status_code=200, content={
-                       'pred': 'NA', 'classes': 'NA'})
+        'pred': pred, 'classes': classes})
     return res
 
 if __name__ == '__main__':
