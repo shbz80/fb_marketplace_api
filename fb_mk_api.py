@@ -78,9 +78,12 @@ def predict_img_class(img: UploadFile = File(...)):
     return res
 
 @api.post('/text')
-def predict_txt_class(txt: UploadFile = Form(...)):
+def predict_txt_class(txt: str = Form(...)):
+    txt = transformer_txt.transform(txt)
+    classes = textModel.predict_classes(txt)
+    pred = textModel.predict(txt)
     res = JSONResponse(status_code=200, content={
-                       'pred': 'NA', 'classes': 'NA'})
+        'pred': pred, 'classes': classes})
     return res
 
 @api.post('/combined')
