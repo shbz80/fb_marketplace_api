@@ -59,6 +59,14 @@ textModel = TextModel(saved_txt_model_path, word_embd_dim=EMBED_DIM,
 textModel.to(torch.device("cpu"))
 textModel.eval()
 
+# COMBINED PREDICTION
+saved_combined_model_path = os.path.join(
+    os.getcwd(), 'models', 'best_combined_model.pt')
+combined_model = CombinedModel(
+    saved_combined_model_path, saved_img_model_path, saved_txt_model_path,
+    decoder, transformer_img, EMBED_DIM, word_kernel_size=3)
+combined_model.eval()
+
 api = FastAPI()
 
 @api.post('/image')
