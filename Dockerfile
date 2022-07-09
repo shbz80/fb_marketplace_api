@@ -1,5 +1,5 @@
 # install the base image with Python
-FROM python:3.9-slim-buster
+FROM python:3.9-buster
 # copy all contents of the project folder
 COPY . .
 # install all python package requirements
