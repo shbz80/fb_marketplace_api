@@ -4,6 +4,10 @@ import numpy as np
 import torch
 
 class TextClassification(nn.Module):
+    """This is the original class for the text
+    classification. This will be used to load the trained (saved) model.
+    TODO: Code duplication! Import it from the original source.
+    """
     def __init__(self, word_embd_dim, num_classes, word_kernel_size=2):
         super().__init__()
         self.word_embd_dim = word_embd_dim

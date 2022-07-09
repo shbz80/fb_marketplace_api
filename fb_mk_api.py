@@ -27,9 +27,9 @@ transformer_img = TransformImage(saved_transformer, img_preprocessor)
 # path for the saved cnn model 
 saved_img_model_path = os.path.join(
     os.getcwd(), 'models', 'best_image_cnn_model.pt')
-# path for the saved class decoder
+# load the saved category decoder
 decoder = joblib.load(os.path.join(os.getcwd(), 'models', 'cat_decoder.pkl'))
-# instantiate the api model
+# instantiate the api image model
 imageModel = ImageModel(saved_img_model_path, decoder, transformer_img)
 imageModel.to(torch.device("cpu"))
 imageModel.eval()
@@ -38,28 +38,31 @@ imageModel.eval()
 nltk.download('stopwords')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
-
-EMBED_DIM = 128
-# word_to_idx = joblib.load('/models/word_to_idx.pkl')
+# load the word to idx dict
 path = join(os.getcwd(), 'models', 'word_to_idx.pkl')
 word_to_idx = joblib.load(path)
+# load the saved (trained) word2vec embeddings 
+EMBED_DIM = 128
 embeddings = nn.Embedding(len(word_to_idx), EMBED_DIM)
 embeddings.load_state_dict(torch.load(join(os.getcwd(),
     'models','embeddings_wts.pt'), map_location=torch.device('cpu')))
 embeddings.requires_grad_(False)
+# load the max word length that was determined during training
 max_word_len = joblib.load(join(os.getcwd(), 'models', 'max_desc_len.pkl'))
-
+# instantiate the transformer object for text data
 transformer_txt = TransformText(
     word_to_idx, embeddings, max_word_len, EMBED_DIM)
-
+# load the trained text cnn model
 saved_txt_model_path = os.path.join(
     os.getcwd(), 'models', 'best_text_cnn_model.pt')
+# instantiate the api text model
 textModel = TextModel(saved_txt_model_path, word_embd_dim=EMBED_DIM,
                       decoder=decoder, word_kernel_size=3)
 textModel.to(torch.device("cpu"))
 textModel.eval()
 
 # COMBINED PREDICTION
+# load the trained combined model
 saved_combined_model_path = os.path.join(
     os.getcwd(), 'models', 'best_combined_model.pt')
 combined_model = CombinedModel(
@@ -69,6 +72,7 @@ combined_model.eval()
 
 api = FastAPI()
 
+# API POST method for image classification
 @api.post('/image')
 def predict_img_class(img: UploadFile = File(...)):
     img = Image.open(img.file)
@@ -77,6 +81,7 @@ def predict_img_class(img: UploadFile = File(...)):
     res = JSONResponse(status_code=200, content={'pred': pred, 'classes': classes})
     return res
 
+# API POST method for text classification
 @api.post('/text')
 def predict_txt_class(txt: str = Form(...)):
     txt = transformer_txt.transform(txt)
@@ -86,6 +91,7 @@ def predict_txt_class(txt: str = Form(...)):
         'pred': pred, 'classes': classes})
     return res
 
+# API POST method for combined classification
 @api.post('/combined')
 def predict_comb_class(img: UploadFile = File(...), txt: str = Form(...)):
     img = Image.open(img.file)

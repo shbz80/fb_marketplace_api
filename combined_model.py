@@ -1,4 +1,3 @@
-from email.policy import strict
 import torch
 import numpy as np
 import torch.nn.functional as F
@@ -8,6 +7,10 @@ from text_model import TextClassification
 
 
 class CombinedImageTextModel(nn.Module):
+    """This is the original class for the combined image and text
+    classification. This will be used to load the trained (saved) model.
+    TODO: Code duplication! Import it from the original source.
+    """
     def __init__(self, image_model, text_model, num_classes):
         super().__init__()
         self.image_model = image_model
@@ -25,6 +28,7 @@ class CombinedImageTextModel(nn.Module):
         return self.combined_layer(op)
 
 class CombinedModel(torch.nn.Module):
+    """This implements the combined model class for using with the actual API."""
     def __init__(
         self, saved_combined_model_path, saved_img_model_path, 
         saved_txt_model_path, decoder, img_transformer, word_embd_dim,
@@ -59,6 +63,7 @@ class CombinedModel(torch.nn.Module):
             torch.load(saved_txt_model_path,
                        map_location=torch.device('cpu')), strict=False
         )
+
         # load the combined model
         self.combined_model = CombinedImageTextModel(
             self.img_model, self.txt_model, len(decoder))
@@ -71,18 +76,23 @@ class CombinedModel(torch.nn.Module):
             param.requires_grad = False
         
     def forward(self, img_ip, txt_ip):
+        # use transformation for the image input
         img_ip = self.img_transformer.transform(img_ip)
+        # transformation for the text input is done outside
         return self.combined_model(img_ip.unsqueeze(0), txt_ip.unsqueeze(0))
 
     def predict(self, img_ip, txt_ip):
+        """Returns the category (str) of the combined prediction """
         i = np.argmax(self.predict_proba(img_ip, txt_ip)).item()
         return self.decoder[i]
 
     def predict_proba(self, img_ip, txt_ip):
+        """Returns the probabilities of the combined prediction """
         output = self.forward(img_ip, txt_ip).squeeze()
         return F.softmax(output, dim=0).detach()
 
     def predict_classes(self, img_ip, txt_ip):
+        """Returns the ranked category (str) list of the combined prediction """
         proba = self.predict_proba(img_ip, txt_ip)
         proba_args = proba.argsort().numpy()[::-1]
         classes = [self.decoder[arg] for arg in list(proba_args)]

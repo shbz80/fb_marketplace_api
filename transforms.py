@@ -5,7 +5,10 @@ from nltk.tokenize import RegexpTokenizer
 from nltk import word_tokenize
 import torch
 import numpy as np
+
+
 class TransformImage():
+    """Class for transfomation to be applied within the image model"""
     def __init__(self, saved_transformer, img_preprocessor) -> None:
         self.saved_transformer = saved_transformer
         self.size = (224, 224)
@@ -19,6 +22,7 @@ class TransformImage():
         return transformed_im
 
 class TransformText():
+    """Class for text transformation to be used outside the text model"""
     def __init__(self, word_to_idx, embeddings, max_word_len, embd_dim) -> None:
         self.word_to_idx = word_to_idx
         self.embeddings = embeddings
@@ -50,6 +54,7 @@ class TransformText():
         return processed_txt
 
     def get_word_to_indx(self, words):
+        """Converts the list of words in the querry to indices"""
         if not isinstance(words, list):
             raise TypeError('Input not a list.')
         idxs = []
@@ -62,12 +67,16 @@ class TransformText():
         return idxs
 
     def get_idxs_to_embedding_seq(self, idxs):
+        """Converts the list of word indices to contiguous sequence
+        of embedding vectors """
         idxs = torch.from_numpy(np.array(idxs).reshape(-1, 1))
         embds = self.embeddings(idxs).squeeze()
         embds_seq = torch.concat([emb for emb in embds])
         return embds_seq
 
     def pad_embedding_seq(self, embds_seq):
+        """Pads the embedding sequence with zeros to fill upto
+        the max querry length"""
         pad_len = self.max_word_len * self.embd_dim - len(embds_seq)
         assert(pad_len >= 0)
         pad_len_r = pad_len // 2
@@ -78,6 +87,7 @@ class TransformText():
         return padded_embds_seq
 
     def transform(self, txt):
+        """Call this method to apply the complete transformation"""
         input = self.preprocess(txt)
         input = self.get_word_to_indx(input)
         input = self.get_idxs_to_embedding_seq(input)
