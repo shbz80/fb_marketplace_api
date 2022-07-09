@@ -5,66 +5,35 @@ from fastapi import Form
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
 import joblib
-import numpy as np
 import os
 import torch
-import torch.nn.functional as F
-from torchvision import models
-import torch.nn as nn
 from prepare_image_data import PrepareImageData
-from transforms import TransformImage
+from transforms import TransformImage, TransformText
 from PIL import Image
+import nltk
+from image_model import ImageModel
+from text_model import TextModel
+from combined_model import CombinedModel
+import torch.nn as nn
+from os.path import join
 
-class ImageModel(torch.nn.Module):
-    def __init__(self, saved_model_path, decoder, transformer) -> None:
-        super().__init__()
-        self.img_model = models.resnet50(pretrained=True)
-        num_ftrs = self.img_model.fc.in_features
-        self.img_model.fc = nn.Sequential(nn.Linear(num_ftrs, 256),
-                            nn.ReLU(),
-                            nn.Linear(256, len(decoder)),
-                            )
-        self.img_model.load_state_dict(torch.load(
-            saved_model_path, map_location=torch.device('cpu')))
-        self.decoder = decoder
-        self.transformer = transformer
-
-    def forward(self, input):
-        input = self.transformer.transform(input)
-        return self.img_model(input.unsqueeze(0))
-
-    def predict(self, input):
-        i = np.argmax(self.predict_proba(input)).item()
-        return self.decoder[i]
-
-    def predict_proba(self, input):
-        output = self.forward(input).squeeze()
-        return F.softmax(output, dim=0).detach()
-
-    def predict_classes(self, input):
-        proba = self.predict_proba(input)
-        proba_args = proba.argsort().numpy()[::-1]
-        classes = [self.decoder[arg] for arg in list(proba_args)]
-        return classes
-
+# IMAGE PREDICTION
 # load the saved pytorch transformer used for training
 saved_transformer = joblib.load(os.path.join(os.getcwd(), 'models', 'img_transformer.pkl'))
-
 # get the preprocessing function used for training
 img_preprocessor = PrepareImageData.process_image
-
 # instantiate the final transformer object
-transformer = TransformImage(saved_transformer, img_preprocessor)
-
+transformer_img = TransformImage(saved_transformer, img_preprocessor)
 # path for the saved cnn model 
-model_path = os.path.join(os.getcwd(), 'models', 'best_image_cnn_model.pt')
-
+saved_img_model_path = os.path.join(
+    os.getcwd(), 'models', 'best_image_cnn_model.pt')
 # path for the saved class decoder
 decoder = joblib.load(os.path.join(os.getcwd(), 'models', 'cat_decoder.pkl'))
-
 # instantiate the api model
-imageModel = ImageModel(model_path, decoder, transformer)
+imageModel = ImageModel(saved_img_model_path, decoder, transformer_img)
 imageModel.to(torch.device("cpu"))
+imageModel.eval()
+
 
 api = FastAPI()
 
