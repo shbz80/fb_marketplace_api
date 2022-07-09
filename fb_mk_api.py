@@ -34,6 +34,30 @@ imageModel = ImageModel(saved_img_model_path, decoder, transformer_img)
 imageModel.to(torch.device("cpu"))
 imageModel.eval()
 
+# TEXT PREDICTION
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+
+EMBED_DIM = 128
+# word_to_idx = joblib.load('/models/word_to_idx.pkl')
+path = join(os.getcwd(), 'models', 'word_to_idx.pkl')
+word_to_idx = joblib.load(path)
+embeddings = nn.Embedding(len(word_to_idx), EMBED_DIM)
+embeddings.load_state_dict(torch.load(join(os.getcwd(),
+    'models','embeddings_wts.pt'), map_location=torch.device('cpu')))
+embeddings.requires_grad_(False)
+max_word_len = joblib.load(join(os.getcwd(), 'models', 'max_desc_len.pkl'))
+
+transformer_txt = TransformText(
+    word_to_idx, embeddings, max_word_len, EMBED_DIM)
+
+saved_txt_model_path = os.path.join(
+    os.getcwd(), 'models', 'best_text_cnn_model.pt')
+textModel = TextModel(saved_txt_model_path, word_embd_dim=EMBED_DIM,
+                      decoder=decoder, word_kernel_size=3)
+textModel.to(torch.device("cpu"))
+textModel.eval()
 
 api = FastAPI()
 
